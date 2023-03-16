@@ -1,8 +1,10 @@
 ﻿using IntelliTect.TestTools;
+using Microsoft.VisualStudio.TestPlatform.Common.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Assignment.Tests;
@@ -98,14 +100,42 @@ public class PingProcessTests
     [ExpectedException(typeof(AggregateException))]
     public void RunAsync_UsingTplWithCancellation_CatchAggregateExceptionWrapping()
     {
-        
+        CancellationTokenSource tokenSource = new();
+        tokenSource.Cancel();
+        Task<PingResult> task = Sut.RunAsync("localhost", tokenSource.Token);
+        try
+        {
+            task.Wait();
+        }
+        catch (AggregateException ex)
+        {
+            throw ex;
+        }
+        finally 
+        {
+            tokenSource.Dispose();
+        }
     }
 
     [TestMethod]
     [ExpectedException(typeof(TaskCanceledException))]
     public void RunAsync_UsingTplWithCancellation_CatchAggregateExceptionWrappingTaskCanceledException()
     {
-        // Use exception.Flatten()
+        CancellationTokenSource tokenSource = new();
+        tokenSource.Cancel();
+        Task<PingResult> task = Sut.RunAsync("localhost", tokenSource.Token);
+        try
+        {
+            task.Wait();
+        }
+        catch (AggregateException ex)
+        {
+            throw ex.Flatten().GetBaseException();
+        }
+        finally
+        {
+            tokenSource.Dispose();
+        }
     }
 
     [TestMethod]
