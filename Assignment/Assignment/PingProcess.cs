@@ -27,6 +27,8 @@ public class PingProcess
 
     public Task<PingResult> RunTaskAsync(string hostNameOrAddress)
     {
+        //Task should be running as it is returned from this method. DO NOT WAIT
+        // use RunProcessInternal
         Task<PingResult> task = Task.Run(() => Run(hostNameOrAddress));
         while (!task.Wait(1000)) 
         {
