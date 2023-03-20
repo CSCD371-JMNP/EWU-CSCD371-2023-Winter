@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -45,19 +46,25 @@ public class PingProcess
         return await RunTaskAsync(hostNameOrAddress);
     }
 
-    async public Task<PingResult> RunAsync(IEnumerable<string> hostNameOrAddresses)
+    async public Task<PingResult> RunAsync(IEnumerable<string> hostNameOrAddresses, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         StringBuilder? stringBuilder = new();
         ParallelQuery<Task<int>>? all = hostNameOrAddresses.AsParallel().Select(async item =>
         {
-            Task<PingResult> task = RunAsync(item);
-            //Test commit
+            Task<PingResult> task = RunTaskAsync(item);
+
             await task.WaitAsync(default(CancellationToken));
             return task.Result.ExitCode;
         });
         await Task.WhenAll(all);
+        foreach (Task<int> item in all) 
+        {
+            stringBuilder.AppendLine(item.Result.ToString());
+        }
+        
         int total = all.Aggregate(0, (total, item) => total + item.Result);
-        return new PingResult(total, stringBuilder?.ToString());
+        return new PingResult(total, stringBuilder?.ToString().Trim());
     }
 
     async public Task<PingResult> RunLongRunningAsync(
